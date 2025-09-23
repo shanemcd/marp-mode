@@ -18,6 +18,12 @@ Marp is a Markdown presentation ecosystem that allows you to create slide decks 
 
 First, install [Marp CLI](https://github.com/marp-team/marp-cli):
 
+#### Option 1: Download Binary (Recommended)
+
+Download the appropriate binary for your system from the [releases page](https://github.com/marp-team/marp-cli/releases).
+
+#### Option 2: Install via npm
+
 ```bash
 npm install -g @marp-team/marp-cli
 ```
