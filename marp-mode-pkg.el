@@ -2,7 +2,7 @@
 
 (define-package "marp-mode" "0.1.0"
   "An Emacs minor mode for working with Marp presentations"
-  '((transient "0.3.0"))
+  '((transient "0.7"))
   :keywords '("marp" "markdown" "presentations" "slides")
   :url "https://github.com/shanemcd/marp-mode"
   :maintainer '("Shane McDonald" . "me@shanemcd.com")

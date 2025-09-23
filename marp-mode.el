@@ -5,7 +5,7 @@
 ;; Author: Shane McDonald <me@shanemcd.com>
 ;; URL: https://github.com/shanemcd/marp-mode
 ;; Version: 0.1.0
-;; Package-Requires: ((transient "0.3.0"))
+;; Package-Requires: ((transient "0.7"))
 ;; Keywords: marp, markdown, presentations, slides
 
 ;; This file is not part of GNU Emacs.
