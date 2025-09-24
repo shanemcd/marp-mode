@@ -125,6 +125,18 @@ When enabled, Marp will be able to access local images and assets."
   (marp-stop-watch)
   (marp-stop-server))
 
+(defun marp--stop-watch-if-running ()
+  "Stop watch process if it's running."
+  (interactive)
+  (when (and marp-watch-process (process-live-p marp-watch-process))
+    (marp-stop-watch)))
+
+(defun marp--stop-server-if-running ()
+  "Stop server process if it's running."
+  (interactive)
+  (when (and marp-server-process (process-live-p marp-server-process))
+    (marp-stop-server)))
+
 
 (defun marp--executable-exists-p ()
   "Check if Marp CLI executable exists."
@@ -276,22 +288,34 @@ When enabled, Marp will be able to access local images and assets."
 ;;;###autoload
 (transient-define-prefix marp-menu ()
   "Main menu for Marp operations."
-  ["Convert"
-   ("h" "HTML (default)" marp-run-basic)
-   ("d" "PDF" marp-convert-to-pdf)
-   ("x" "PowerPoint" marp-convert-to-pptx)
-   ("i" "Images" marp-convert-to-images)]
-  ["Preview"
-   ("p" "Preview" marp-preview)
-   ("w" "Watch mode" marp-watch-mode)
-   ("s" "Server mode" marp-server-mode)]
-  ["Process Control"
-   ("W" "Stop watch" marp-stop-watch)
-   ("S" "Stop server" marp-stop-server)
-   ("Q" "Stop all processes" marp-stop-all)]
-  ["Options"
-   ("o" "Output settings" marp-output-menu)
-   ("a" "Advanced options" marp-advanced-menu)])
+  [:description (lambda ()
+                  (format "Marp Mode%s"
+                          (let ((running '()))
+                            (when (and marp-watch-process (process-live-p marp-watch-process))
+                              (push "Watch" running))
+                            (when (and marp-server-process (process-live-p marp-server-process))
+                              (push "Server" running))
+                            (if running
+                                (format " (Running: %s)" (string-join running ", "))
+                              ""))))
+   ["Convert"
+    ("h" "HTML (default)" marp-run-basic)
+    ("d" "PDF" marp-convert-to-pdf)
+    ("x" "PowerPoint" marp-convert-to-pptx)
+    ("i" "Images" marp-convert-to-images)]
+   ["Preview"
+    ("p" "Preview" marp-preview)
+    ("w" "Watch mode" marp-watch-mode)
+    ("s" "Server mode" marp-server-mode)]
+   ["Options"
+    ("o" "Output settings" marp-output-menu)
+    ("a" "Advanced options" marp-advanced-menu)]]
+  [:if (lambda () (or (and marp-watch-process (process-live-p marp-watch-process))
+                      (and marp-server-process (process-live-p marp-server-process))))
+   ["Process Control"
+    ("W" marp--stop-watch-if-running :if (lambda () (and marp-watch-process (process-live-p marp-watch-process))) :description "Stop watch")
+    ("S" marp--stop-server-if-running :if (lambda () (and marp-server-process (process-live-p marp-server-process))) :description "Stop server")
+    ("Q" "Stop all processes" marp-stop-all)]])
 
 
 (transient-define-prefix marp-output-menu ()
