@@ -119,8 +119,8 @@ The transient interface is organized into several sub-menus:
 ;; Default output format
 (setq marp-default-output-format 'html)
 
-;; Browser choice for PDF conversion
-(setq marp-browser-choice 'auto)  ; or 'chrome, 'edge, 'firefox
+;; Browser for Marp CLI operations
+(setq marp-browser "auto")  ; "auto", browser name, or full path to executable
 
 ;; Auto-open preview in watch mode
 (setq marp-watch-mode-auto-open t)
@@ -141,6 +141,7 @@ By default, marp-mode binds `C-c m` to open the main transient menu. You can cus
 
 - [transient](https://github.com/magit/transient) package (built into Emacs 28+)
 - [Marp CLI](https://github.com/marp-team/marp-cli) installed and available in PATH
+- A supported browser (Chrome, Chromium, Firefox, or Edge) for preview mode
 
 ## Examples
 
@@ -177,6 +178,41 @@ For live editing:
 1. Press `C-c m` then `w` to start watch mode
 2. Edit your Markdown file
 3. Changes will automatically update the preview
+
+## Troubleshooting
+
+### Browser Issues
+
+If you have issues with preview or watch mode:
+
+1. **Set a specific browser** (uses `--browser`):
+   ```elisp
+   (setq marp-browser "chromium")  ; or "chrome", "firefox", "edge"
+   ```
+
+2. **Use a custom browser path** (uses `--browser-path`):
+   ```elisp
+   (setq marp-browser "/usr/bin/google-chrome")  ; full path to executable
+   ```
+
+3. **Install a supported browser**:
+   **Linux:**
+   ```bash
+   sudo apt install chromium-browser  # Ubuntu/Debian
+   sudo dnf install chromium          # Fedora
+   ```
+
+   **macOS:**
+   ```bash
+   brew install --cask google-chrome
+   ```
+
+### Local Images Not Showing
+
+If local images aren't displaying in your presentation:
+
+1. Enable local files: `C-c m` → `a` → `l`
+2. Or set globally: `(setq marp-allow-local-files-by-default t)`
 
 ## Contributing
 

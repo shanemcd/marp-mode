@@ -63,12 +63,13 @@
                  (const :tag "Images" images))
   :group 'marp)
 
-(defcustom marp-browser-choice 'auto
-  "Browser to use for PDF conversion."
-  :type '(choice (const :tag "Auto-detect" auto)
-                 (const :tag "Chrome" chrome)
-                 (const :tag "Edge" edge)
-                 (const :tag "Firefox" firefox))
+(defcustom marp-browser "auto"
+  "Browser to use for Marp CLI operations.
+Can be:
+- \"auto\" (let Marp CLI choose)
+- Browser name: \"chrome\", \"chromium\", \"firefox\", \"edge\" (uses --browser)
+- Full path: \"/usr/bin/google-chrome\" (uses --browser-path)"
+  :type 'string
   :group 'marp)
 
 (defcustom marp-watch-mode-auto-open t
@@ -90,11 +91,45 @@ When enabled, Marp will be able to access local images and assets."
 (defvar marp-output-buffer "*Marp Output*"
   "Name of the buffer for Marp CLI output.")
 
+(defvar marp-watch-process nil
+  "Current Marp watch process.")
+
+(defvar marp-server-process nil
+  "Current Marp server process.")
+
 ;;; Utility Functions
+
+(defun marp--kill-process (process-var process-name)
+  "Kill PROCESS-VAR if it's running and set it to nil."
+  (when (and (symbol-value process-var)
+             (process-live-p (symbol-value process-var)))
+    (message "Stopping existing %s process..." process-name)
+    (kill-process (symbol-value process-var))
+    (set process-var nil)))
+
+(defun marp-stop-watch ()
+  "Stop the current Marp watch process."
+  (interactive)
+  (marp--kill-process 'marp-watch-process "watch")
+  (message "Marp watch mode stopped."))
+
+(defun marp-stop-server ()
+  "Stop the current Marp server process."
+  (interactive)
+  (marp--kill-process 'marp-server-process "server")
+  (message "Marp server stopped."))
+
+(defun marp-stop-all ()
+  "Stop all running Marp processes."
+  (interactive)
+  (marp-stop-watch)
+  (marp-stop-server))
+
 
 (defun marp--executable-exists-p ()
   "Check if Marp CLI executable exists."
   (executable-find marp-cli-executable))
+
 
 (defun marp--get-input-file ()
   "Get the current buffer's file name or prompt for one."
@@ -127,9 +162,13 @@ When enabled, Marp will be able to access local images and assets."
           (setq cmd (append cmd (list "--image-scale" (number-to-string value)))))
          ((eq key 'browser-timeout)
           (setq cmd (append cmd (list "--browser-timeout" (number-to-string value))))))))
-    ;; Add browser choice if not auto
-    (unless (eq marp-browser-choice 'auto)
-      (setq cmd (append cmd (list "--browser" (symbol-name marp-browser-choice)))))
+    ;; Add browser if not auto
+    (unless (string= marp-browser "auto")
+      (if (file-executable-p marp-browser)
+          ;; It's a path to an executable
+          (setq cmd (append cmd (list "--browser-path" marp-browser)))
+        ;; It's a browser name
+        (setq cmd (append cmd (list "--browser" marp-browser)))))
     ;; Add extra args
     (when extra-args
       (setq cmd (append cmd extra-args)))
@@ -141,7 +180,8 @@ When enabled, Marp will be able to access local images and assets."
   (let ((buffer (get-buffer-create marp-output-buffer)))
     (with-current-buffer buffer
       (erase-buffer)
-      (insert (format "Running: %s\n\n" (mapconcat 'identity command " "))))
+      (insert (format "Running: %s\n\n" (mapconcat 'identity command " ")))
+      (insert (format "Debug - Command list: %S\n\n" command)))
     (apply 'call-process (car command) nil buffer t (cdr command))
     (display-buffer buffer)))
 
@@ -198,13 +238,19 @@ When enabled, Marp will be able to access local images and assets."
   (interactive)
   (unless (marp--executable-exists-p)
     (user-error "Marp CLI not found. Please install it first"))
+
   (let* ((input-file (marp--get-input-file))
          (args (if marp-watch-mode-auto-open
                    '("--watch" "--preview")
                  '("--watch")))
          (command (marp--build-command input-file args)))
-    (start-process "marp-watch" marp-output-buffer
-                   (car command) (cadr command) (caddr command))
+
+    ;; Stop any existing watch process
+    (marp--kill-process 'marp-watch-process "watch")
+
+    ;; Start new watch process
+    (setq marp-watch-process
+          (apply 'start-process "marp-watch" marp-output-buffer (car command) (cdr command)))
     (message "Marp watch mode started. Check %s for output." marp-output-buffer)))
 
 ;;; Minor Mode Definition
@@ -239,23 +285,14 @@ When enabled, Marp will be able to access local images and assets."
    ("p" "Preview" marp-preview)
    ("w" "Watch mode" marp-watch-mode)
    ("s" "Server mode" marp-server-mode)]
+  ["Process Control"
+   ("W" "Stop watch" marp-stop-watch)
+   ("S" "Stop server" marp-stop-server)
+   ("Q" "Stop all processes" marp-stop-all)]
   ["Options"
-   ("b" "Browser settings" marp-browser-menu)
    ("o" "Output settings" marp-output-menu)
    ("a" "Advanced options" marp-advanced-menu)])
 
-(transient-define-prefix marp-browser-menu ()
-  "Browser settings for Marp."
-  ["Browser Choice"
-   ("a" "Auto-detect" marp-browser-auto)
-   ("c" "Chrome" marp-browser-chrome)
-   ("e" "Edge" marp-browser-edge)
-   ("f" "Firefox" marp-browser-firefox)]
-  ["Custom"
-   ("p" "Set browser path" marp-set-browser-path)]
-  ["Navigation"
-   ("b" "Back to main menu" marp-menu)
-   ("q" "Quit" transient-quit-one)])
 
 (transient-define-prefix marp-output-menu ()
   "Output settings for Marp."
@@ -281,31 +318,10 @@ When enabled, Marp will be able to access local images and assets."
    ("b" "Back to main menu" marp-menu)
    ("q" "Quit" transient-quit-one)])
 
-;;; Browser Selection Functions
+;;; Alternative Preview Function
 
-(defun marp-browser-auto ()
-  "Set browser to auto-detect."
-  (interactive)
-  (setq marp-browser-choice 'auto)
-  (message "Browser set to auto-detect"))
 
-(defun marp-browser-chrome ()
-  "Set browser to Chrome."
-  (interactive)
-  (setq marp-browser-choice 'chrome)
-  (message "Browser set to Chrome"))
 
-(defun marp-browser-edge ()
-  "Set browser to Edge."
-  (interactive)
-  (setq marp-browser-choice 'edge)
-  (message "Browser set to Edge"))
-
-(defun marp-browser-firefox ()
-  "Set browser to Firefox."
-  (interactive)
-  (setq marp-browser-choice 'firefox)
-  (message "Browser set to Firefox"))
 
 ;;; Additional Functions
 
@@ -315,20 +331,23 @@ When enabled, Marp will be able to access local images and assets."
   (unless (marp--executable-exists-p)
     (user-error "Marp CLI not found. Please install it first"))
   (let* ((input-file (marp--get-input-file))
+         (input-dir (file-name-directory input-file))
          (port (read-string "Server port (default 8080): " "8080"))
-         (command (marp--build-command input-file (list "--server" "--port" port))))
-    (start-process "marp-server" marp-output-buffer
-                   (car command) (cadr command) (caddr command) (cadddr command) (nth 4 command))
-    (message "Marp server started on port %s. Check %s for output." port marp-output-buffer)))
+         (cmd (list marp-cli-executable "--server" "--port" port "--input-dir" input-dir)))
+    ;; Add browser if not auto
+    (unless (string= marp-browser "auto")
+      (if (file-executable-p marp-browser)
+          (setq cmd (append cmd (list "--browser-path" marp-browser)))
+        (setq cmd (append cmd (list "--browser" marp-browser)))))
 
-(defun marp-set-browser-path ()
-  "Set custom browser path."
-  (interactive)
-  (let ((path (read-file-name "Browser executable path: ")))
-    (setq marp-current-options
-          (cons (cons 'browser-path path)
-                (assq-delete-all 'browser-path marp-current-options)))
-    (message "Browser path set to: %s" path)))
+    ;; Stop any existing server process
+    (marp--kill-process 'marp-server-process "server")
+
+    ;; Start new server process
+    (setq marp-server-process
+          (apply 'start-process "marp-server" marp-output-buffer (car cmd) (cdr cmd)))
+    (message "Marp server started on port %s for directory %s. Check %s for output." port input-dir marp-output-buffer)))
+
 
 (defun marp-set-output-file ()
   "Set output file."
