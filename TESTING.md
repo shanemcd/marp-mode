@@ -156,7 +156,27 @@ While editing test-marp-mode.el:
 
 ## Continuous Integration
 
-For CI/CD pipelines, use the batch mode command with exit codes:
+### GitHub Actions
+
+The repository includes a GitHub Actions workflow (`.github/workflows/test.yml`) that automatically runs tests on:
+- Pull requests to `main`
+- Pushes to `main`
+- Manual workflow dispatch
+
+The workflow tests against multiple Emacs versions:
+- Emacs 28.1, 28.2
+- Emacs 29.1, 29.2
+- Emacs snapshot (latest development version)
+
+Tests run in parallel across all versions using a matrix strategy. The workflow will:
+1. Checkout the code
+2. Install the specified Emacs version
+3. Run the test suite in batch mode
+4. Report results with exit code (0 = pass, 1 = fail)
+
+### Custom CI/CD Pipelines
+
+For other CI/CD systems, use the batch mode command with exit codes:
 
 ```bash
 #!/bin/bash
@@ -168,6 +188,16 @@ emacs -Q -batch \
 # Exit code will be:
 # 0 - all tests passed
 # 1 - some tests failed
+```
+
+### Testing Specific Emacs Versions
+
+To test against a specific Emacs version locally, you can use Docker:
+
+```bash
+docker run -v $(pwd):/workspace -w /workspace silex/emacs:28.2 \
+  emacs -Q -batch -l marp-mode.el -l test-marp-mode.el \
+  -f ert-run-tests-batch-and-exit
 ```
 
 ## Debugging Failed Tests

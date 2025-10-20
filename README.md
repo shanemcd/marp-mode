@@ -1,5 +1,7 @@
 # marp-mode
 
+[![Tests](https://github.com/shanemcd/marp-mode/actions/workflows/test.yml/badge.svg)](https://github.com/shanemcd/marp-mode/actions/workflows/test.yml)
+
 An Emacs minor mode for working with [Marp](https://marp.app/) presentations.
 
 Marp is a Markdown presentation ecosystem that allows you to create slide decks using Markdown syntax. This mode provides an intuitive transient-based interface for accessing Marp CLI functionality directly from Emacs.
