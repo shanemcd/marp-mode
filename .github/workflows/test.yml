@@ -1,0 +1,50 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        emacs-version:
+          - '28.1'
+          - '28.2'
+          - '29.1'
+          - '29.2'
+          - 'snapshot'
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Emacs
+        uses: jcs090218/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs-version }}
+
+      - name: Verify Emacs installation
+        run: emacs --version
+
+      - name: Run tests
+        run: |
+          emacs -Q -batch \
+            -l marp-mode.el \
+            -l test-marp-mode.el \
+            -f ert-run-tests-batch-and-exit
+
+      - name: Test summary
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ All tests passed on Emacs ${{ matrix.emacs-version }}"
+          else
+            echo "❌ Tests failed on Emacs ${{ matrix.emacs-version }}"
+          fi
