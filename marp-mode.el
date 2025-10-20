@@ -97,6 +97,9 @@ When enabled, Marp will be able to access local images and assets."
 (defvar marp-server-process nil
   "Current Marp server process.")
 
+(defvar marp-preview-process nil
+  "Current Marp preview process.")
+
 ;;; Utility Functions
 
 (defun marp--kill-process (process-var process-name)
@@ -119,11 +122,18 @@ When enabled, Marp will be able to access local images and assets."
   (marp--kill-process 'marp-server-process "server")
   (message "Marp server stopped."))
 
+(defun marp-stop-preview ()
+  "Stop the current Marp preview process."
+  (interactive)
+  (marp--kill-process 'marp-preview-process "preview")
+  (message "Marp preview stopped."))
+
 (defun marp-stop-all ()
   "Stop all running Marp processes."
   (interactive)
   (marp-stop-watch)
-  (marp-stop-server))
+  (marp-stop-server)
+  (marp-stop-preview))
 
 (defun marp--stop-watch-if-running ()
   "Stop watch process if it's running."
@@ -136,6 +146,12 @@ When enabled, Marp will be able to access local images and assets."
   (interactive)
   (when (and marp-server-process (process-live-p marp-server-process))
     (marp-stop-server)))
+
+(defun marp--stop-preview-if-running ()
+  "Stop preview process if it's running."
+  (interactive)
+  (when (and marp-preview-process (process-live-p marp-preview-process))
+    (marp-stop-preview)))
 
 
 (defun marp--executable-exists-p ()
@@ -243,7 +259,14 @@ When enabled, Marp will be able to access local images and assets."
     (user-error "Marp CLI not found. Please install it first"))
   (let* ((input-file (marp--get-input-file))
          (command (marp--build-command input-file '("--preview"))))
-    (marp--run-command command)))
+
+    ;; Stop any existing preview process
+    (marp--kill-process 'marp-preview-process "preview")
+
+    ;; Start new preview process
+    (setq marp-preview-process
+          (apply 'start-process "marp-preview" marp-output-buffer (car command) (cdr command)))
+    (message "Marp preview started. Check %s for output." marp-output-buffer)))
 
 (defun marp-watch-mode ()
   "Start Marp CLI in watch mode."
@@ -295,6 +318,8 @@ When enabled, Marp will be able to access local images and assets."
                               (push "Watch" running))
                             (when (and marp-server-process (process-live-p marp-server-process))
                               (push "Server" running))
+                            (when (and marp-preview-process (process-live-p marp-preview-process))
+                              (push "Preview" running))
                             (if running
                                 (format " (Running: %s)" (string-join running ", "))
                               ""))))
@@ -311,10 +336,12 @@ When enabled, Marp will be able to access local images and assets."
     ("o" "Output settings" marp-output-menu)
     ("a" "Advanced options" marp-advanced-menu)]]
   [:if (lambda () (or (and marp-watch-process (process-live-p marp-watch-process))
-                      (and marp-server-process (process-live-p marp-server-process))))
+                      (and marp-server-process (process-live-p marp-server-process))
+                      (and marp-preview-process (process-live-p marp-preview-process))))
    ["Process Control"
     ("W" marp--stop-watch-if-running :if (lambda () (and marp-watch-process (process-live-p marp-watch-process))) :description "Stop watch")
     ("S" marp--stop-server-if-running :if (lambda () (and marp-server-process (process-live-p marp-server-process))) :description "Stop server")
+    ("P" marp--stop-preview-if-running :if (lambda () (and marp-preview-process (process-live-p marp-preview-process))) :description "Stop preview")
     ("Q" "Stop all processes" marp-stop-all)]])
 
 
