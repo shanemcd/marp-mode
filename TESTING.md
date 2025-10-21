@@ -164,8 +164,7 @@ The repository includes a GitHub Actions workflow (`.github/workflows/test.yml`)
 - Manual workflow dispatch
 
 The workflow tests against multiple Emacs versions:
-- Emacs 28.1, 28.2
-- Emacs 29.1, 29.2
+- Emacs 30.2
 - Emacs snapshot (latest development version)
 
 Tests run in parallel across all versions using a matrix strategy. The workflow will:
@@ -195,7 +194,7 @@ emacs -Q -batch \
 To test against a specific Emacs version locally, you can use Docker:
 
 ```bash
-docker run -v $(pwd):/workspace -w /workspace silex/emacs:28.2 \
+docker run -v $(pwd):/workspace -w /workspace silex/emacs:30.2 \
   emacs -Q -batch -l marp-mode.el -l test-marp-mode.el \
   -f ert-run-tests-batch-and-exit
 ```
