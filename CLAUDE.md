@@ -73,7 +73,7 @@ GitHub Actions automatically runs the test suite on:
 - Pushes to `main`
 - Manual workflow dispatch
 
-Tests run in parallel across Emacs versions 28.1, 28.2, 29.1, 29.2, and snapshot. See `.github/workflows/test.yml`.
+Tests run in parallel across Emacs versions 30.2 and snapshot. See `.github/workflows/test.yml`.
 
 **IMPORTANT**: Always run tests before submitting PRs. Add new tests when adding features or fixing bugs.
 
