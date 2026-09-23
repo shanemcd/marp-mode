@@ -118,6 +118,12 @@ The transient interface is organized into several sub-menus:
 ;; Path to Marp CLI executable
 (setq marp-cli-executable "marp")
 
+;; Optional Marpit engine module or file path; nil uses the CLI default
+(setq marp-engine nil)
+;; For example, use a globally installed Marp Core v5 full build:
+;; (setq marp-engine
+;;       (expand-file-name "~/.local/node_modules/@marp-team/marp-core/lib/full.mjs"))
+
 ;; Default output format
 (setq marp-default-output-format 'html)
 

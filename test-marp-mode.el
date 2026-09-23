@@ -28,6 +28,7 @@
 (defmacro marp-test-with-clean-state (&rest body)
   "Execute BODY with clean marp state."
   `(let ((marp-current-options '())
+         (marp-engine nil)
          (marp-allow-local-files-by-default nil)
          (marp-browser "auto")
          (marp-cli-executable "marp")
@@ -43,6 +44,33 @@
   (marp-test-with-clean-state
    (let ((cmd (marp--build-command "test.md")))
      (should (equal cmd '("marp" "test.md"))))))
+
+(ert-deftest test-marp--build-command-with-engine ()
+  "Test command building with a configured Marpit engine."
+  (marp-test-with-clean-state
+   (setq marp-engine "/opt/marp/marp-core/full.mjs")
+   (should (equal (marp--build-command "slides.md")
+                  '("marp" "--engine" "/opt/marp/marp-core/full.mjs" "slides.md")))))
+
+(ert-deftest test-marp-server-mode-with-engine ()
+  "Test that server mode passes the configured engine to Marp CLI."
+  (marp-test-with-clean-state
+   (let ((marp-engine "/opt/marp/marp-core/full.mjs")
+         started-command)
+     (with-temp-buffer
+       (setq buffer-file-name "/tmp/slides.md")
+       (cl-letf (((symbol-function 'executable-find)
+                  (lambda (_) "/opt/marp/bin/marp"))
+                 ((symbol-function 'read-string)
+                  (lambda (&rest _) "8765"))
+                 ((symbol-function 'start-process)
+                  (lambda (_name _buffer program &rest args)
+                    (setq started-command (cons program args))
+                    'mock-process)))
+         (marp-server-mode)
+         (should (equal (cl-subseq started-command 0 3)
+                        '("marp" "--engine"
+                          "/opt/marp/marp-core/full.mjs"))))))))
 
 (ert-deftest test-marp--build-command-with-output ()
   "Test command building with output file option."

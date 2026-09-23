@@ -74,6 +74,7 @@ The test suite covers:
 - Multiple options together
 - Extra arguments
 - Default allow-local-files behavior
+- Configured `--engine` argument
 - Numeric option conversion to strings
 
 ### Browser Configuration

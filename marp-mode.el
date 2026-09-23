@@ -55,6 +55,14 @@
   :type 'string
   :group 'marp)
 
+(defcustom marp-engine nil
+  "Optional Marpit-based engine passed to the Marp CLI with --engine.
+This can be an engine package name or a file path.  When nil, let the CLI
+select its default engine."
+  :type '(choice (const :tag "Marp CLI default" nil)
+                 (string :tag "Engine package or file path"))
+  :group 'marp)
+
 (defcustom marp-default-output-format 'html
   "Default output format for Marp conversions."
   :type '(choice (const :tag "HTML" html)
@@ -166,7 +174,9 @@ When enabled, Marp will be able to access local images and assets."
 
 (defun marp--build-command (input-file &optional extra-args)
   "Build Marp CLI command for INPUT-FILE with optional EXTRA-ARGS."
-  (let ((cmd (list marp-cli-executable)))
+  (let ((cmd (append (list marp-cli-executable)
+                     (when marp-engine
+                       (list "--engine" marp-engine)))))
     ;; Add default allow-local-files if enabled
     (when (and marp-allow-local-files-by-default
                (not (assoc 'allow-local-files marp-current-options)))
@@ -384,7 +394,10 @@ When enabled, Marp will be able to access local images and assets."
   (let* ((input-file (marp--get-input-file))
          (input-dir (file-name-directory input-file))
          (port (read-string "Server port (default 8080): " "8080"))
-         (cmd (list marp-cli-executable "--server" "--port" port "--input-dir" input-dir)))
+         (cmd (append (list marp-cli-executable)
+                      (when marp-engine
+                        (list "--engine" marp-engine))
+                      (list "--server" "--port" port "--input-dir" input-dir))))
     ;; Add browser if not auto
     (unless (string= marp-browser "auto")
       (if (file-executable-p marp-browser)
