@@ -128,6 +128,7 @@ Note: Unit tests do NOT require Marp CLI as they use mocked functions.
 
 Key variables users typically configure:
 - `marp-cli-executable` - path to Marp CLI (default: "marp")
+- `marp-engine` - optional Marpit engine module/path passed as `--engine` (default: nil)
 - `marp-browser` - browser selection (default: "auto")
 - `marp-watch-mode-auto-open` - auto-open preview in watch mode (default: t)
 - `marp-allow-local-files-by-default` - allow local file access (default: nil)
